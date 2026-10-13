@@ -1,0 +1,44 @@
+@startuml classes
+class Request {
+  - sourceId: int
+  - generationTime: float
+  + getSourceId(): int
+  + getGenerationTime(): float
+}
+
+class Buffer {
+  - capacity: int
+  - queue: Request[]
+  + insertAtFirstFreeSpot(req: Request): void
+  + removeLowestPriorityRequest(): Request
+  + getBatchBySource(sourceId: int): Request[]
+  + isFull(): boolean
+  + isEmpty(): boolean
+}
+
+class DispatcherPut {
+  - buffer: Buffer
+  + processNewRequest(req: Request): void
+  - handleBufferOverflow(req: Request): void
+}
+
+class DispatcherGet {
+  - buffer: Buffer
+  - devices: Device[]
+  - devicePointer: int
+  + onDeviceFreed(): void
+  - getNextDeviceByRing(): Device
+}
+
+class Device {
+  - deviceId: int
+  - isBusy: boolean
+  + process(req: Request): void
+  + free(): void
+}
+
+DispatcherPut --> Buffer : "- buffer"
+DispatcherGet --> Buffer : "- buffer"
+DispatcherGet --> Device : "- devices"
+Buffer o-- Request : "Хранит"
+@enduml
