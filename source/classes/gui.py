@@ -5,8 +5,6 @@ from classes.system import SystemModel
 
 
 class StepModeGUI:
-    """Графический интерфейс пошагового режима (ОД1)."""
-
     def __init__(self, root):
         self.root = root
         self.root.title("СМО: Вариант 10 — Пошаговый режим (Метод особых состояний)")
@@ -18,7 +16,6 @@ class StepModeGUI:
         self._update_display()
 
     def _build_ui(self):
-        # Панель управления параметрами
         param_frame = ttk.LabelFrame(
             self.root, text="Параметры конфигурации", padding=10
         )
@@ -44,7 +41,6 @@ class StepModeGUI:
         )
         btn_apply.grid(row=0, column=6, padx=15)
 
-        # Информационная строка
         self.lbl_time = ttk.Label(
             self.root,
             text="Текущее модельное время: 0.000",
@@ -52,7 +48,6 @@ class StepModeGUI:
         )
         self.lbl_time.pack(anchor=tk.W, padx=15, pady=4)
 
-        # Таблица Календаря событий
         cal_frame = ttk.LabelFrame(
             self.root,
             text="Календарь событий и источники (ОД1)",
@@ -76,11 +71,9 @@ class StepModeGUI:
             self.tree_cal.column(col, anchor=tk.CENTER, width=150)
         self.tree_cal.pack(fill=tk.BOTH, expand=True)
 
-        # Состояние буфера и приборов (горизонтальное разделение)
         mid_frame = ttk.Frame(self.root)
         mid_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
-        # Буфер
         buf_frame = ttk.LabelFrame(
             mid_frame, text="Буферная память (Д1ОЗ3, Д1ОО2)", padding=8
         )
@@ -100,7 +93,6 @@ class StepModeGUI:
             self.tree_buf.column(col, anchor=tk.CENTER, width=80)
         self.tree_buf.pack(fill=tk.BOTH, expand=True)
 
-        # Приборы
         dev_frame = ttk.LabelFrame(
             mid_frame, text="Приборы-воркеры (Д2П2, Д2Б5)", padding=8
         )
@@ -120,7 +112,6 @@ class StepModeGUI:
             self.tree_dev.column(col, anchor=tk.CENTER, width=90)
         self.tree_dev.pack(fill=tk.BOTH, expand=True)
 
-        # Лог последнего действия
         log_frame = ttk.LabelFrame(self.root, text="Журнал событий", padding=8)
         log_frame.pack(fill=tk.X, padx=10, pady=5)
 
@@ -133,7 +124,6 @@ class StepModeGUI:
         )
         self.lbl_action.pack(anchor=tk.W)
 
-        # Кнопки управления пошаговым выполнением
         ctrl_frame = ttk.Frame(self.root, padding=10)
         ctrl_frame.pack(fill=tk.X, padx=10)
 
@@ -192,7 +182,6 @@ class StepModeGUI:
         )
         self.lbl_action.config(text=self.model.last_action_desc)
 
-        # Обновление календаря событий
         for item in self.tree_cal.get_children():
             self.tree_cal.delete(item)
 
@@ -209,7 +198,6 @@ class StepModeGUI:
                 ),
             )
 
-        # Обновление буфера
         for item in self.tree_buf.get_children():
             self.tree_buf.delete(item)
 
@@ -228,7 +216,6 @@ class StepModeGUI:
                     ),
                 )
 
-        # Обновление приборов
         for item in self.tree_dev.get_children():
             self.tree_dev.delete(item)
 
