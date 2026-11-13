@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from source.classes.gui import StepModeGUI
+from classes.gui import StepModeGUI
 
 if __name__ == "__main__":
     app_root = tk.Tk()
