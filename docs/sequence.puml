@@ -1,38 +1,82 @@
-@startuml sequence
-actor "Источник" as Source
-participant "Диспетчер постановки" as DIn
-participant "Буфер" as Buffer
-participant "Диспетчер выборки" as DOut
-participant "Прибор" as Device
+@startuml sequence_multi_class
+skinparam maxMessageSize 150
+actor "Source\n(Источник)" as Source
+participant "DispatcherPut\n(Диспетчер постановки)" as DPut
+participant "Buffer\n(Буфер)" as Buffer
+participant "DispatcherGet\n(Диспетчер выборки)" as DGet
+participant "Device\n(Прибор)" as Device
 
-== Поступление заявки (Триггер: Время) ==
-Source -> DIn: Сгенерирована заявка\n[ИЗ2: Равномерный закон]
-DIn -> Buffer: Проверка свободных мест
-alt Буфер не переполнен (Happy Flow)
-    DIn -> Buffer: Поместить на 1-е свободное место\n[Д1ОЗ3]
-    Buffer -->> DIn: Заявка сохранена
-else Буфер заполнен на 100% (Переполнение)
-    DIn -> Buffer: Запросить список для оценки приоритетов
-    Buffer -->> DIn: Возврат списка
-    DIn -> DIn: Найти заявку с наименьшим\nприоритетом источника [Д1ОО2]
-    DIn -> Buffer: Выбить найденную заявку в отказ
-    DIn -> Buffer: Поместить новую заявку\nна освободившееся место [Д1ОЗ3]
-    Buffer -->> DIn: Буфер обновлен
+== Поступление заявки (Событие генерации по ИЗ2) ==
+
+Source -> DPut: processNewRequest(req)
+activate DPut
+
+DPut -> Buffer: isFull()
+activate Buffer
+Buffer -->> DPut: статус: места есть / мест нет
+deactivate Buffer
+
+alt Буфер не переполнен (Свободные места)
+    DPut -> Buffer: insertAtFirstFreeSpot(req) [Д1ОЗ3]
+    activate Buffer
+    Buffer -->> DPut: Заявка сохранена без сдвига
+    deactivate Buffer
+else Буфер заполнен на 100%
+    DPut -> Buffer: Запрос приоритетов заявок
+    activate Buffer
+    Buffer -->> DPut: Данные о заявках
+    deactivate Buffer
+
+    alt Приоритет новой заявки <= худшего в буфере
+        DPut -> DPut: Отказ новой заявке\n(dropped_counters++)
+    else Новая заявка приоритетнее
+        DPut -> Buffer: removeLowestPriorityRequest() [Д1ОО2]
+        activate Buffer
+        Buffer -->> DPut: Самая старая заявка с худшим приоритетом удалена (Отказ)
+        deactivate Buffer
+
+        DPut -> Buffer: insertAtFirstFreeSpot(req) [Д1ОЗ3]
+        activate Buffer
+        Buffer -->> DPut: Заявка заняла освободившуюся ячейку
+        deactivate Buffer
+    end
 end
+deactivate DPut
 
-== Выборка на обслуживание (Триггер: Освобождение прибора) ==
-Device -> DOut: Прибор завершил работу\n[ПЗ1: Экспоненциальный закон]
-DOut -> Buffer: Проверка наличия заявок
-alt В буфере есть заявки
-    DOut -> DOut: Найти самый приоритетный\nпакет заявок [Д2Б5]
-    loop Пока в выбранном пакете есть заявки
-        DOut -> Buffer: Извлечь заявку из пакета
-        Buffer -->> DOut: Данные заявки
-        DOut -> DOut: Сдвиг указателя прибора по кольцу\n[Д2П2]
-        DOut -> Device: Отправить заявку на прибор
-        Device -->> DOut: Принято в обработку
+== Выборка на обслуживание (Событие освобождения прибора по ПЗ1) ==
+
+Device -> DGet: onDeviceFreed()
+activate DGet
+
+DGet -> Buffer: isEmpty()
+activate Buffer
+Buffer -->> DGet: статус: пуст / не пуст
+deactivate Buffer
+
+alt В буфере есть ожидающие заявки
+    DGet -> Buffer: Запросить список доступных источников
+    activate Buffer
+    Buffer -->> DGet: Список ID источников
+    deactivate Buffer
+
+    DGet -> DGet: Определить приоритетный\nисточник для пакета [Д2Б5]
+
+    loop Пока есть заявки в активном пакете
+        DGet -> Buffer: Извлечь самую старую заявку\nактивного пакета
+        activate Buffer
+        Buffer -->> DGet: req (данные заявки)
+        deactivate Buffer
+
+        DGet -> DGet: getNextDeviceByRing()\nСдвиг указателя [Д2П2]
+
+        DGet -> Device: process(req)
+        activate Device
+        Device -->> DGet: Подтверждение (Прибор перешел в статус "Занят")
+        deactivate Device
     end
 else Буфер пуст
-    DOut -> DOut: Ожидание новых событий
+    DGet -> DGet: Переход в режим ожидания\nновых событий
 end
+deactivate DGet
+
 @enduml

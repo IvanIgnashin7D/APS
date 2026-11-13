@@ -1,4 +1,6 @@
-@startuml classes
+@startuml classes_multi_class
+skinparam classAttributeIconSize 0
+
 class Request {
   - sourceId: int
   - generationTime: float
@@ -6,26 +8,32 @@ class Request {
   + getGenerationTime(): float
 }
 
+class Source {
+  - sourceId: int
+  + generateRequest(): void
+}
+
 class Buffer {
   - capacity: int
   - queue: Request[]
-  + insertAtFirstFreeSpot(req: Request): void
-  + removeLowestPriorityRequest(): Request
-  + getBatchBySource(sourceId: int): Request[]
   + isFull(): boolean
   + isEmpty(): boolean
+  + insertAtFirstFreeSpot(req: Request): void
+  + removeLowestPriorityRequest(): Request
+  + getAvailableSources(): int[]
+  + extractOldestFromPackage(sourceId: int): Request
 }
 
 class DispatcherPut {
   - buffer: Buffer
   + processNewRequest(req: Request): void
-  - handleBufferOverflow(req: Request): void
 }
 
 class DispatcherGet {
   - buffer: Buffer
   - devices: Device[]
   - devicePointer: int
+  - activePackageSource: int
   + onDeviceFreed(): void
   - getNextDeviceByRing(): Device
 }
@@ -33,12 +41,15 @@ class DispatcherGet {
 class Device {
   - deviceId: int
   - isBusy: boolean
+  - dispatcherGet: DispatcherGet
   + process(req: Request): void
-  + free(): void
 }
 
+Source --> DispatcherPut : "вызывает processNewRequest()"
 DispatcherPut --> Buffer : "- buffer"
 DispatcherGet --> Buffer : "- buffer"
 DispatcherGet --> Device : "- devices"
+Device --> DispatcherGet : "оповещает onDeviceFreed()"
 Buffer o-- Request : "Хранит"
+
 @enduml
